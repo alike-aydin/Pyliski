@@ -153,21 +153,6 @@ class PyliskiSolver:
         if not result.success:
             raise RuntimeError("Optimization failed: " + result.message)
 
-        import matplotlib.pyplot as plt
-
-        print(f"Optimization successful: {result.x}")
-        foundTF = self.transferModel(self.time, result.x)  # type: ignore
-        plt.plot(self.time, foundTF, label="Optimized Model")
-        plt.plot(self.time, self.outputData, label="Output Data", color="red")
-        plt.plot(
-            self.time,
-            np.convolve(foundTF, self.boxcar)[1 : len(self.time) + 1],
-            label="Convolved Model",
-            color="green",
-        )
-        plt.legend()
-        plt.show()
-
         return result
 
     def run(self, n: int) -> List[OptimizeResult]:
