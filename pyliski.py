@@ -8,7 +8,6 @@ from typing import Callable, List, Tuple
 from scipy.optimize import OptimizeResult
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 class PyliskiSovlver:
@@ -22,14 +21,14 @@ class PyliskiSovlver:
         """
         Initialize the PyliskiSovlver class.
         """
-        self.time = None
-        self.boxcar = None
-        self.outputData = None
+        self.time = np.array([])
+        self.boxcar = np.array([])
+        self.outputData = np.array([])
         self.transferModel = None
-        self.bounds = None
-        self.minim_options = None
+        self.bounds = np.array([])
+        self.minim_options = np.array([])
 
-        self.last_optimized = None
+        self.last_optimized = []
 
     def set_input_boxcar(
         self, dt: float, baseline: float, up: float, total: float
@@ -57,7 +56,7 @@ class PyliskiSovlver:
         :param data: Output data as a numpy array, single dimension, time step should correspond to dt of boxcar.
         :raises ValueError: If the data is not a numpy array or if the dimensions do not match.
         """
-        if self.time is None:
+        if self.time.size == 0:
             raise ValueError("Time array must be set before setting output data.")
         if not isinstance(data, np.ndarray):
             raise ValueError("Output data must be a numpy array.")
@@ -76,14 +75,14 @@ class PyliskiSovlver:
         """
         import matplotlib.pyplot as plt
 
-        if self.boxcar is None or self.outputData is None:
+        if self.boxcar.size == 0 or self.outputData.size == 0:
             raise ValueError("Boxcar and output data must be set before visualization.")
 
         plt.figure(figsize=(10, 5))
         # Boxcar is normalized to outputData for better visualization
         factor = np.max(self.outputData) / np.max(self.boxcar)  # / 1
-        plt.plot(self.time, self.boxcar * factor, label="Boxcar Function", color="blue")  # type: ignore
-        plt.plot(self.time, self.outputData, label="Output Data", color="red")  # type: ignore
+        plt.plot(self.time, self.boxcar * factor, label="Boxcar Function", color="blue")
+        plt.plot(self.time, self.outputData, label="Output Data", color="red")
         plt.xlabel("Time")
         plt.ylabel("Amplitude")
         plt.title("Boxcar Function and Output Data")
@@ -115,9 +114,9 @@ class PyliskiSovlver:
         """
         if not callable(model_func):
             raise ValueError("Transfer model must be a callable function.")
-        if self.boxcar is None:
+        if self.boxcar.size == 0:
             raise ValueError("Boxcar must be set before setting the transfer model.")
-        if self.outputData is None:
+        if self.outputData.size == 0:
             raise ValueError(
                 "Output data must be set before setting the transfer model."
             )
@@ -154,15 +153,15 @@ class PyliskiSovlver:
         if not result.success:
             raise RuntimeError("Optimization failed: " + result.message)
 
+        import matplotlib.pyplot as plt
+
         print(f"Optimization successful: {result.x}")
         foundTF = self.transferModel(self.time, result.x)  # type: ignore
-        plt.plot(self.time, foundTF, label="Optimized Model")  # type: ignore
+        plt.plot(self.time, foundTF, label="Optimized Model")
+        plt.plot(self.time, self.outputData, label="Output Data", color="red")
         plt.plot(
-            self.time, self.outputData, label="Output Data", color="red"  # type: ignore
-        )
-        plt.plot(
-            self.time,  # type: ignore
-            np.convolve(foundTF, self.boxcar)[1 : len(self.time) + 1],  # type: ignore
+            self.time,
+            np.convolve(foundTF, self.boxcar)[1 : len(self.time) + 1],
             label="Convolved Model",
             color="green",
         )
@@ -230,22 +229,71 @@ class PyliskiPlotter:
         if not hasattr(self.pyliski_solver, "last_optimized"):
             raise ValueError("No optimization results available to plot.")
 
-        plt.figure(figsize=(10, 5))
-        for result in self.pyliski_solver.last_optimized:
-            plt.plot(
-                self.pyliski_solver.time,
-                self.pyliski_solver.transferModel(self.pyliski_solver.time, result.x),  # type: ignore
-                label=f"Optimized Model {result.x}",
-            )
-        plt.plot(
-            self.pyliski_solver.time,
-            self.pyliski_solver.outputData,
-            label="Output Data",
-            color="red",
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+
+        sns.set_theme(style="darkgrid")
+
+        # FIRST SUBPLOT: Input Data
+        sns.lineplot(
+            x=self.pyliski_solver.time,
+            y=self.pyliski_solver.boxcar,
+            ax=axs[0],
+            label="Boxcar Function",
         )
-        plt.xlabel("Time")
-        plt.ylabel("Amplitude")
-        plt.title("Optimized Transfer Functions")
-        plt.legend()
-        plt.grid()
+        sns.lineplot(
+            x=self.pyliski_solver.time,
+            y=self.pyliski_solver.outputData,
+            ax=axs[0],
+            label="Output Data",
+        )
+        axs[0].set_title("Input Data")
+        axs[0].set_xlabel("Time (s)")
+        axs[0].set_ylabel("Amplitude (a.u.)")
+
+        # SECOND SUBPLOT: Optimized Transfer Function
+        best_result = self.pyliski_solver.last_optimized[
+            0
+        ]  # Assuming the first result is the best
+        optimized_tf = self.pyliski_solver.transferModel(  # type: ignore
+            self.pyliski_solver.time, best_result.x
+        )
+        sns.lineplot(
+            x=self.pyliski_solver.time,
+            y=optimized_tf,
+            ax=axs[1],
+            label="Optimized Transfer Function",
+        )
+        axs[1].set_title("Optimized Transfer Function")
+        axs[1].set_xlabel("Time (s)")
+        axs[1].set_ylabel("Amplitude (a.u.)")
+        axs[1].legend()
+        axs[1].grid()
+
+        # THIRD SUBPLOT: Convolved Model
+        convolved_model = np.convolve(optimized_tf, self.pyliski_solver.boxcar)[
+            1 : len(self.pyliski_solver.time) + 1
+        ]
+        sns.lineplot(
+            x=self.pyliski_solver.time,
+            y=self.pyliski_solver.outputData,
+            ax=axs[2],
+            label="Output Data",
+        )
+        sns.lineplot(
+            x=self.pyliski_solver.time,
+            y=convolved_model,
+            ax=axs[2],
+            label="Convolved Model",
+        )
+        axs[2].set_title("Applied Model")
+        axs[2].set_xlabel("Time (s)")
+        axs[2].set_ylabel("Amplitude (a.u.)")
+        axs[2].legend()
+        axs[2].grid()
+
+        plt.tight_layout()
         plt.show()
+        plt.pause(5)
