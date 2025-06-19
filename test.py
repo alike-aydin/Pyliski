@@ -6,7 +6,7 @@ test.py
 """
 
 import numpy as np
-from pyliski import Pyliski
+from pyliski import PyliskiSolver
 from transfer_utils import gamma
 
 
@@ -14,7 +14,7 @@ def test_pyliski():
     """
     Test the Pyliski class methods.
     """
-    pyliski = Pyliski()
+    pyliski = PyliskiSolver()
 
     # Test setInputBoxcar
     dt = 0.1
@@ -43,8 +43,10 @@ def test_pyliski():
     pyliski.visualize_data()
 
     pyliski.set_transfer_model(gamma)
+    options = {"bounds": [(0.001, 10.0), (0.001, 10.0), (0.001, 10.0), (0.001, 10.0)]}
+    pyliski.set_options(options)
 
-    xx = pyliski.optimize([(0.001, 10.0), (0.001, 10.0), (0.001, 10.0), (0.001, 10.0)])
+    pyliski.run(2)
 
     print("All tests passed.")
 
