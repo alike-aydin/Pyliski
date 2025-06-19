@@ -214,7 +214,7 @@ class PyliskiPlotter:
     This class provides methods to plot the optimized transfer function and the output data.
     """
 
-    def __init__(self, pyliski_solver: PyliskiSovlver):
+    def __init__(self, pyliski_solver: PyliskiSolver):
         """
         Initialize the PyliskiPlotter class.
 
