@@ -10,7 +10,7 @@ from scipy.optimize import OptimizeResult
 import numpy as np
 
 
-class PyliskiSovlver:
+class PyliskiSolver:
     """
     Pyliski class for handling input boxcar, output data, and transfer model.
     This class provides methods to set input boxcar, output data, visualize data,
