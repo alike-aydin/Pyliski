@@ -5,9 +5,12 @@ pyliski.py
 """
 
 from typing import Callable, List, Tuple
-from scipy.optimize import OptimizeResult
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure, Axes
 
 import numpy as np
+from scipy.optimize import OptimizeResult
+import seaborn as sns
 
 
 class PyliskiSolver:
@@ -207,19 +210,21 @@ class PyliskiPlotter:
         """
         self.pyliski_solver = pyliski_solver
 
-    def plot_results(self):
+    def _update_plots(self, n_result: int, fig: Figure, axs: Axes):
         """
-        Plot the results of the optimization.
+        Update the plots with the latest optimization results.
+
+        :param n_result: Index of the result to plot.
+        :param fig: Matplotlib figure object.
+        :param axs: Matplotlib axes object.
         """
         if not hasattr(self.pyliski_solver, "last_optimized"):
             raise ValueError("No optimization results available to plot.")
 
-        import matplotlib.pyplot as plt
-        import seaborn as sns
+        if n_result >= len(self.pyliski_solver.last_optimized):
+            raise IndexError("Result index out of range.")
 
-        fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-
-        sns.set_theme(style="darkgrid")
+        result = self.pyliski_solver.last_optimized[n_result]
 
         # FIRST SUBPLOT: Input Data
         sns.lineplot(
@@ -237,13 +242,11 @@ class PyliskiPlotter:
         axs[0].set_title("Input Data")
         axs[0].set_xlabel("Time (s)")
         axs[0].set_ylabel("Amplitude (a.u.)")
+        axs[0].legend()
 
         # SECOND SUBPLOT: Optimized Transfer Function
-        best_result = self.pyliski_solver.last_optimized[
-            0
-        ]  # Assuming the first result is the best
         optimized_tf = self.pyliski_solver.transferModel(  # type: ignore
-            self.pyliski_solver.time, best_result.x
+            self.pyliski_solver.time, result.x
         )
         sns.lineplot(
             x=self.pyliski_solver.time,
@@ -255,7 +258,6 @@ class PyliskiPlotter:
         axs[1].set_xlabel("Time (s)")
         axs[1].set_ylabel("Amplitude (a.u.)")
         axs[1].legend()
-        axs[1].grid()
 
         # THIRD SUBPLOT: Convolved Model
         convolved_model = np.convolve(optimized_tf, self.pyliski_solver.boxcar)[
@@ -277,8 +279,48 @@ class PyliskiPlotter:
         axs[2].set_xlabel("Time (s)")
         axs[2].set_ylabel("Amplitude (a.u.)")
         axs[2].legend()
-        axs[2].grid()
+
+        # FOURTH SUBPLOT: Residuals and textual information
+        axs[3].annotate(
+            f"Rank: {n_result+1}/{len(self.pyliski_solver.last_optimized)}",
+            xy=(0, 0.9),
+            xycoords="axes fraction",
+            fontsize=12,
+        )
+        axs[3].annotate(
+            f"Best Parameters: {[float(np.round(x, 2)) for x in result.x]}",
+            xy=(0, 0.8),
+            xycoords="axes fraction",
+            fontsize=12,
+        )
+        axs[3].annotate(
+            f"Best Residual: {float(np.round(result.fun, 4))}",
+            xy=(0, 0.7),
+            xycoords="axes fraction",
+            fontsize=12,
+        )
+        axs[3].annotate(
+            f"Number of Iterations: {result.nit}",
+            xy=(0, 0.6),
+            xycoords="axes fraction",
+            fontsize=12,
+        )
+        axs[3].set_axis_off()
+        axs[3].set_title("Miscellaneous Information")
+
+    def plot_results(self):
+        """
+        Plot the results of the optimization.
+        """
+        if not hasattr(self.pyliski_solver, "last_optimized"):
+            raise ValueError("No optimization results available to plot.")
+
+        sns.set_theme(style="darkgrid")
+
+        fig, axs = plt.subplots(1, 4, figsize=(20, 5))
+
+        self._update_plots(0, fig, axs)
+        plt.suptitle("Pyliski Optimization Results", fontsize=16)
 
         plt.tight_layout()
         plt.show()
-        plt.pause(5)
