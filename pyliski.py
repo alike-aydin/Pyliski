@@ -82,8 +82,8 @@ class PyliskiSovlver:
         plt.figure(figsize=(10, 5))
         # Boxcar is normalized to outputData for better visualization
         factor = np.max(self.outputData) / np.max(self.boxcar)  # / 1
-        plt.plot(self.time, self.boxcar * factor, label="Boxcar Function", color="blue")
-        plt.plot(self.time, self.outputData, label="Output Data", color="red")
+        plt.plot(self.time, self.boxcar * factor, label="Boxcar Function", color="blue")  # type: ignore
+        plt.plot(self.time, self.outputData, label="Output Data", color="red")  # type: ignore
         plt.xlabel("Time")
         plt.ylabel("Amplitude")
         plt.title("Boxcar Function and Output Data")
@@ -197,6 +197,17 @@ class PyliskiSovlver:
         """
         return sorted(results, key=lambda res: res.fun)
 
+    def save_solver(self, filename: str):
+        """
+        Save the PyliskiSovlver instance to a file.
+
+        :param filename: Name of the file to save the instance.
+        """
+        import pickle
+
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
+
 
 class PyliskiPlotter:
     """
@@ -204,30 +215,28 @@ class PyliskiPlotter:
     This class provides methods to plot the optimized transfer function and the output data.
     """
 
-    def __init__(self, time: np.ndarray, pyliski_solver: PyliskiSolver):
+    def __init__(self, pyliski_solver: PyliskiSovlver):
         """
-        Initialize the PyliskiPlottter class with a PyliskiSovlver instance.
+        Initialize the PyliskiPlotter class.
+
+        :param pyliski_solver: Instance of PyliskiSovlver to plot results from.
         """
         self.pyliski_solver = pyliski_solver
 
-    def plot_results(self, result: OptimizeResult):
+    def plot_results(self):
         """
         Plot the results of the optimization.
-
-        :param result: Optimization result from PyliskiSovlver.
         """
-        if not hasattr(self.pyliski_solver, "time"):
-            raise ValueError("Time array must be set before plotting results.")
-        if not hasattr(self.pyliski_solver, "outputData"):
-            raise ValueError("Output data must be set before plotting results.")
+        if not hasattr(self.pyliski_solver, "last_optimized"):
+            raise ValueError("No optimization results available to plot.")
 
         plt.figure(figsize=(10, 5))
-        plt.plot(
-            self.pyliski_solver.time,
-            self.pyliski_solver.transferModel(self.pyliski_solver.time, result.x),  # type: ignore
-            label="Optimized Transfer Function",
-            color="blue",
-        )
+        for result in self.pyliski_solver.last_optimized:
+            plt.plot(
+                self.pyliski_solver.time,
+                self.pyliski_solver.transferModel(self.pyliski_solver.time, result.x),  # type: ignore
+                label=f"Optimized Model {result.x}",
+            )
         plt.plot(
             self.pyliski_solver.time,
             self.pyliski_solver.outputData,
@@ -236,7 +245,7 @@ class PyliskiPlotter:
         )
         plt.xlabel("Time")
         plt.ylabel("Amplitude")
-        plt.title("Optimized Transfer Function vs Output Data")
+        plt.title("Optimized Transfer Functions")
         plt.legend()
         plt.grid()
         plt.show()
