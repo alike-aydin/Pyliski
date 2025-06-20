@@ -4,9 +4,11 @@ pyliski.py
 
 """
 
-from typing import Callable, List, Tuple
+from typing import Callable, List
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure, Axes
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 
 import numpy as np
 from scipy.optimize import OptimizeResult
@@ -17,7 +19,7 @@ class PyliskiSolver:
     """
     Pyliski class for handling input boxcar, output data, and transfer model.
     This class provides methods to set input boxcar, output data, visualize data,
-    and optimize the transfer model.
+    optimize the transfer model and save the solver.
     """
 
     def __init__(self):
@@ -209,8 +211,9 @@ class PyliskiPlotter:
         :param pyliski_solver: Instance of PyliskiSovlver to plot results from.
         """
         self.pyliski_solver = pyliski_solver
+        self.n_result = 0
 
-    def _update_plots(self, n_result: int, fig: Figure, axs: Axes):
+    def _update_plots(self, fig: Figure, axs: List[Axes]):
         """
         Update the plots with the latest optimization results.
 
@@ -221,12 +224,10 @@ class PyliskiPlotter:
         if not hasattr(self.pyliski_solver, "last_optimized"):
             raise ValueError("No optimization results available to plot.")
 
-        if n_result >= len(self.pyliski_solver.last_optimized):
-            raise IndexError("Result index out of range.")
-
-        result = self.pyliski_solver.last_optimized[n_result]
+        result = self.pyliski_solver.last_optimized[self.n_result]
 
         # FIRST SUBPLOT: Input Data
+        axs[0].clear()
         sns.lineplot(
             x=self.pyliski_solver.time,
             y=self.pyliski_solver.boxcar,
@@ -248,6 +249,7 @@ class PyliskiPlotter:
         optimized_tf = self.pyliski_solver.transferModel(  # type: ignore
             self.pyliski_solver.time, result.x
         )
+        axs[1].clear()
         sns.lineplot(
             x=self.pyliski_solver.time,
             y=optimized_tf,
@@ -263,6 +265,7 @@ class PyliskiPlotter:
         convolved_model = np.convolve(optimized_tf, self.pyliski_solver.boxcar)[
             1 : len(self.pyliski_solver.time) + 1
         ]
+        axs[2].clear()
         sns.lineplot(
             x=self.pyliski_solver.time,
             y=self.pyliski_solver.outputData,
@@ -281,8 +284,9 @@ class PyliskiPlotter:
         axs[2].legend()
 
         # FOURTH SUBPLOT: Residuals and textual information
+        axs[3].clear()
         axs[3].annotate(
-            f"Rank: {n_result+1}/{len(self.pyliski_solver.last_optimized)}",
+            f"Rank: {self.n_result+1}/{len(self.pyliski_solver.last_optimized)}",
             xy=(0, 0.9),
             xycoords="axes fraction",
             fontsize=12,
@@ -308,6 +312,24 @@ class PyliskiPlotter:
         axs[3].set_axis_off()
         axs[3].set_title("Miscellaneous Information")
 
+        plt.draw()
+
+    def _on_key_press(self, event):
+        """
+        Handle key press events to update the plots.
+        """
+        print(f"Key pressed: {event.key}")
+        if event.key == "right":
+            self.n_result = min(
+                len(self.pyliski_solver.last_optimized) - 1, self.n_result + 1
+            )
+            self._update_plots(event.canvas.figure, event.canvas.figure.get_axes())
+        elif event.key == "left":
+            self.n_result = min(0, self.n_result - 1)
+            self._update_plots(event.canvas.figure, event.canvas.figure.get_axes())
+        elif event.key == "escape":
+            plt.close(event.canvas.figure)
+
     def plot_results(self):
         """
         Plot the results of the optimization.
@@ -317,10 +339,14 @@ class PyliskiPlotter:
 
         sns.set_theme(style="darkgrid")
 
-        fig, axs = plt.subplots(1, 4, figsize=(20, 5))
+        fig, axs = plt.subplots(1, 4, figsize=(16, 4))
 
-        self._update_plots(0, fig, axs)
+        # Update the plots with the first result with self.n_result = 0
+        self._update_plots(fig, axs)
         plt.suptitle("Pyliski Optimization Results", fontsize=16)
+
+        # Connect the key press event to the figure
+        fig.canvas.mpl_connect("key_press_event", self._on_key_press)
 
         plt.tight_layout()
         plt.show()
