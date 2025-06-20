@@ -6,7 +6,7 @@ test.py
 """
 
 import numpy as np
-from pyliski import PyliskiSolver
+from pyliski import PyliskiSolver, PyliskiPlotter
 from transfer_utils import gamma
 
 
@@ -47,6 +47,9 @@ def test_pyliski():
     pyliski.set_options(options)
 
     pyliski.run(2)
+
+    plotter = PyliskiPlotter(pyliski)
+    plotter.plot_results()
 
     print("All tests passed.")
 
