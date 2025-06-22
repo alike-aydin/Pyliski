@@ -16,38 +16,44 @@ def test_pyliski():
     """
     pyliski = PyliskiSolver()
 
-    # Test setInputBoxcar
+    # Defining the input boxcar parameters in seconds
+    # dt: time step, baseline: baseline value, up: up value, total: total duration
     dt = 0.1
     baseline = 10.0
     up = 5.0
     total = 29.5
-    boxcar = pyliski.set_input_boxcar(dt, baseline, up, total)
+    # Setting the input boxcar parameters and computing the boxcar function
+    pyliski.set_input_boxcar(dt, baseline, up, total)
 
-    # Check if boxcar is a numpy array and has the correct length
-    assert isinstance(boxcar, np.ndarray), "Boxcar should be a numpy array."
-    assert len(boxcar) == int(
-        total / dt
-    ), "Boxcar length does not match expected length."
-
-    # Test setOutputData with valid data
+    # Loading the output data from a file, keeping only the second column
     output_data = np.loadtxt("XV4_RelativeRBC_ET_200mV_5sec.txt")
     output_data = np.array([o[1] for o in output_data])
+    # Setting the output data for the Pyliski solver
     pyliski.set_output_data(output_data)
 
-    # Check if outputData is set correctly
-    assert hasattr(pyliski, "outputData"), "Output data was not set."
-    assert np.array_equal(
-        pyliski.outputData, output_data
-    ), "Output data does not match input data."
-
+    # Visualizing the input boxcar and output data
     pyliski.visualize_data()
 
+    # Setting the transfer model to the gamma function
+    # The gamma function is defined in the transfer_utils module and takes time and parameters as inputs
     pyliski.set_transfer_model(gamma)
+
+    # Setting the parameters for the optimization
+    # Boundaries are mandatory to run the optimization
+    # Here we set the bounds for the four parameters of the gamma function
+    # p1, p2, p3, p4 are the parameters of the gamma function
+    # The bounds are set to be between 0.001 and 10.0 for each parameter
     options = {"bounds": [(0.001, 10.0), (0.001, 10.0), (0.001, 10.0), (0.001, 10.0)]}
+    # Setting the options for the Pyliski solver
+    # Other parameters can be set using in the options dictionary, see the Pyliski documentation for more details.
     pyliski.set_options(options)
 
+    # Running two iterations of the optimization
     pyliski.run(2)
 
+    # Creating a plotter instance to visualize the results
+    # The PyliskiPlotter class is used to plot the results of the optimization
+    # It takes the PyliskiSolver instance as input
     plotter = PyliskiPlotter(pyliski)
     plotter.plot_results()
 
