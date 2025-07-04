@@ -41,15 +41,16 @@ def test_pyliski():
     # Setting the parameters for the optimization
     # Boundaries are mandatory to run the optimization
     # Here we set the bounds for the four parameters of the gamma function
-    # p1, p2, p3, p4 are the parameters of the gamma function
-    # The bounds are set to be between 0.001 and 10.0 for each parameter
-    options = {"bounds": [(0.001, 10.0), (0.001, 10.0), (0.001, 10.0), (0.001, 10.0)]}
-    # Setting the options for the Pyliski solver
     # Other parameters can be set using in the options dictionary, see the Pyliski documentation for more details.
+    options = {
+        "bounds": [(0.001, 10.0), (0.001, 10.0), (0.001, 10.0), (0.001, 10.0)],
+        "x0": [1.0, 1.0, 1.0, 1.0],  # Initial guess for the parameters
+    }
+    # Setting the options for the Pyliski solver
     pyliski.set_options(options)
 
     # Running two iterations of the optimization
-    pyliski.run(2)
+    pyliski.run(20)
 
     # Creating a plotter instance to visualize the results
     # The PyliskiPlotter class is used to plot the results of the optimization
