@@ -100,7 +100,7 @@ class PyliskiSolver:
         Set options for the Pyliski module.
 
         :param options: Dictionary of options. Should contains at least bounds for optimization.
-            Can contain a key named minim_options for additional settings transfered to the minimizer.
+            Can contain a key named x0 for initial guess or minim_options for additional settings transfered to the minimizer.
         :raises ValueError: If options is not a dictionary or do not contain 'bounds'.
         """
         if not isinstance(options, dict):
@@ -110,6 +110,7 @@ class PyliskiSolver:
 
         self.bounds = options["bounds"]
         self.minim_options = options.get("minim_options", None)
+        self.x0 = options.get("x0", None)
 
     def set_transfer_model(self, model_func: Callable):
         """
@@ -152,6 +153,7 @@ class PyliskiSolver:
                 self.boxcar,
                 self.outputData,
             ),
+            x0=self.x0,
             minimizer_kwargs=self.minim_options,
         )
 
