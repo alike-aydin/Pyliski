@@ -327,7 +327,7 @@ class PyliskiPlotter:
             )
             self._update_plots(event.canvas.figure, event.canvas.figure.get_axes())
         elif event.key == "left":
-            self.n_result = min(0, self.n_result - 1)
+            self.n_result = max(0, self.n_result - 1)
             self._update_plots(event.canvas.figure, event.canvas.figure.get_axes())
         elif event.key == "escape":
             plt.close(event.canvas.figure)
