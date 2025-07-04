@@ -199,6 +199,19 @@ class PyliskiSolver:
         with open(filename, "wb") as f:
             pickle.dump(self, f)
 
+    @staticmethod
+    def load_solver(filename: str) -> "PyliskiSolver":
+        """
+        Load a PyliskiSovlver instance from a file.
+
+        :param filename: Name of the file to load the instance from.
+        :return: Loaded PyliskiSovlver instance.
+        """
+        import pickle
+
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+
 
 class PyliskiPlotter:
     """
